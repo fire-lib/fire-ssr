@@ -1,7 +1,13 @@
 [package]
 name = "fire-ssr"
+description = "Run javascript ssr in rust"
 version = "0.1.0"
+authors = ["Sören Meier <info@s-me.ch>"]
+repository = "https://github.com/fire-lib/fire-ssr"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+categories = ["web-programming"]
+rust-version = "1.64"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
