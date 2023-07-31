@@ -73,7 +73,6 @@ async function main() {
 	const opts = Deno.core.ops.op_get_options() ?? {};
 	const concurrent = new ConcurrentCounter(CONCURRENCY_LIMIT);
 
-	// todo we need to handle multiple request concurrently
 	while (true) {
 		await concurrent.ready();
 		const { id, req } = await Deno.core.opAsync('op_next_request');
