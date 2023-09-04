@@ -3,6 +3,7 @@ use crate::{SsrRequest, SsrResponse};
 
 use std::rc::Rc;
 use std::pin::Pin;
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -12,7 +13,8 @@ use serde::{Serialize, Deserialize};
 use deno_core::{
 	JsRuntime, RuntimeOptions, op, OpState, Extension, anyhow, ModuleLoader,
 	ModuleSpecifier, ModuleSourceFuture, FastString, ResolutionKind, Op,
-	resolve_import, ModuleType, ModuleSource,
+	resolve_import, ModuleType, ModuleSource, ExtensionFileSource,
+	ExtensionFileSourceCode,
 	error::generic_error
 };
 
@@ -94,6 +96,16 @@ pub struct Runtime {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Options(Value);
 
+struct TimersAllowed;
+
+impl deno_web::TimersPermission for TimersAllowed {
+	fn allow_hrtime(&mut self) -> bool {
+		true
+	}
+
+	fn check_unstable(&self, _state: &OpState, _api_name: &'static str) {}
+}
+
 impl Runtime {
 	pub(crate) async fn new(
 		base_dir: PathBuf,
@@ -101,8 +113,10 @@ impl Runtime {
 		rx: RequestReceiver,
 		opts: Value
 	) -> Self {
-		let ext = Extension::builder("fire-ssr")
-			.ops(vec![
+		let ext = Extension {
+			name: "fire-ssr",
+			deps: &["deno_webidl", "deno_url", "deno_web", "deno_crypto"],
+			ops: Cow::Borrowed(&[
 				op_tracing_trace::DECL,
 				op_tracing_debug::DECL,
 				op_tracing_info::DECL,
@@ -113,11 +127,31 @@ impl Runtime {
 				op_next_request::DECL,
 				op_send_response::DECL,
 				op_fetch::DECL
-			])
-			.build();
+			]),
+			esm_files: Cow::Borrowed(&[
+				ExtensionFileSource {
+					specifier: "ext:__fire_ssr_ext/entry.js",
+					code: ExtensionFileSourceCode::IncludedInBinary(
+						include_str!("./ext_entry.js")
+					)
+				}
+			]),
+			esm_entry_point: Some("ext:__fire_ssr_ext/entry.js"),
+			..Default::default()
+		};
 
 		let mut runtime = JsRuntime::new(RuntimeOptions {
-			extensions: vec![ext],
+			extensions: vec![
+				deno_webidl::deno_webidl::init_ops_and_esm(),
+				deno_url::deno_url::init_ops_and_esm(),
+				deno_console::deno_console::init_ops_and_esm(),
+				deno_web::deno_web::init_ops_and_esm::<TimersAllowed>(
+					std::sync::Arc::new(deno_web::BlobStore::default()),
+					None
+				),
+				deno_crypto::deno_crypto::init_ops_and_esm(None),
+				ext
+			],
 			module_loader: Some(Rc::new(StaticModuleLoader {
 				root: base_dir
 			})),

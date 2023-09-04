@@ -1,37 +1,5 @@
 import { render } from './server.js';
 
-globalThis.tracing = {
-	trace: Deno.core.ops.op_tracing_trace,
-	debug: Deno.core.ops.op_tracing_debug,
-	info: Deno.core.ops.op_tracing_info,
-	warn: Deno.core.ops.op_tracing_warn,
-	error: Deno.core.ops.op_tracing_error
-};
-
-globalThis.fetch = async (addr, params = {}) => {
-	let headers = params.headers ?? {};
-	let method = params.method ?? 'GET';
-	let body = params.body ?? '';
-	method = method.toUpperCase();
-
-	const resp = await Deno.core.ops.op_fetch({
-		url: addr,
-		method,
-		headers,
-		body
-	});
-
-	return {
-		status: resp.status,
-		headers: resp.headers,
-		json: async () => {
-			return JSON.parse(resp.body);
-		},
-		text: async () => {
-			return resp.body;
-		}
-	};
-};
 
 class ConcurrentCounter {
 	constructor(limit) {
