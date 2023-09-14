@@ -42,6 +42,7 @@ impl ModuleLoader for StaticModuleLoader {
 		_kind: ResolutionKind
 	) -> Result<ModuleSpecifier, anyhow::Error> {
 		trace!("resolve specifier {specifier:?} with referrer {referrer:?}");
+
 		Ok(resolve_import(specifier, referrer)?)
 	}
 
@@ -53,19 +54,20 @@ impl ModuleLoader for StaticModuleLoader {
 	) -> Pin<Box<ModuleSourceFuture>> {
 		let specifier = specifier.clone();
 
-		let path = specifier.to_file_path()
-			.map(|p| {
-				// because this was parsed from a &str it will always be valid
-				// utf8
-				// let's remove the trailing slash
-				let path = p.to_str().and_then(|s| s.get(1..)).unwrap_or("");
-				self.root.join(path)
-			})
+		let file_path = specifier.to_file_path()
 			.map_err(|_| {
 				generic_error(format!(
 					"Provided module specifier \"{specifier}\" is not a file \
 					URL."
 				))
+			});
+
+		let path = file_path.map(|p| {
+				// because this was parsed from a &str it will always be valid
+				// utf8
+				// let's remove the trailing slash
+				let path = p.to_str().and_then(|s| s.get(1..)).unwrap_or("");
+				self.root.join(path)
 			});
 
 		Box::pin(async move {
@@ -132,7 +134,7 @@ impl Runtime {
 				ExtensionFileSource {
 					specifier: "ext:__fire_ssr_ext/entry.js",
 					code: ExtensionFileSourceCode::IncludedInBinary(
-						include_str!("./ext_entry.js")
+						include_str!("./js/ext_entry.js")
 					)
 				}
 			]),
@@ -172,7 +174,7 @@ impl Runtime {
 
 		let mod_id = runtime.load_main_module(
 			&"file:///__fire_ssr_entry.js".parse().unwrap(),
-			Some(FastString::from_static(include_str!("./main.js")))
+			Some(FastString::from_static(include_str!("./js/main.js")))
 		).await
 			.unwrap();
 		let res = runtime.mod_evaluate(mod_id);

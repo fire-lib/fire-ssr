@@ -123,6 +123,7 @@ globalThis.fetch = async (addr, params = {}) => {
 	});
 
 	return {
+		ok: resp.status >= 200 && resp.status < 300,
 		status: resp.status,
 		headers: resp.headers,
 		json: async () => {
