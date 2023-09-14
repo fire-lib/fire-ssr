@@ -1,8 +1,8 @@
 [package]
 name = "fire-ssr"
 description = "Run javascript ssr in rust"
-version = "0.1.1"
-authors = ["Sören Meier <info@s-me.ch>"]
+version = "0.1.2"
+authors = ["Sören Meier <info@soerenmeier.ch>"]
 repository = "https://github.com/fire-lib/fire-ssr"
 edition = "2021"
 license = "MIT OR Apache-2.0"
